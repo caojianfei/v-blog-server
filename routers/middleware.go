@@ -43,13 +43,21 @@ func CheckLogin() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		c.Next();
+		c.Next()
 	}
 }
 
-
-func TestMiddleware() gin.HandlerFunc {
+func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("TestMiddleware")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "*")
+		c.Header("Access-Control-Allow-Headers", "*")
+		c.Header("Access-Control-Expose-Headers", "*")
+		if c.Request.Method == "OPTIONS" {
+			fmt.Println("option 请求")
+			c.AbortWithStatus(200)
+			return
+		}
+		c.Next()
 	}
 }

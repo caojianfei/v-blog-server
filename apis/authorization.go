@@ -74,22 +74,7 @@ type LoginForm struct {
 var Login = func(ctx *gin.Context) {
 	var form LoginForm
 	if err := ctx.ShouldBind(&form); err != nil {
-		validateErrors := make(FormatValidateError)
-		for _, err := range err.(validator.ValidationErrors) {
-			//fmt.Println("Tag ", err.Tag())
-			//fmt.Println("ActualTag ", err.ActualTag())
-			//fmt.Println("Namespace ", err.Namespace())
-			//fmt.Println("StructNamespace ", err.StructNamespace())
-			//fmt.Println("Field ", err.Field())
-			//fmt.Println("StructField ", err.StructField())
-			//fmt.Println("Value ", err.Value())
-			//fmt.Println("Param ", err.Param())
-			//fmt.Println("Kind ", err.Kind())
-			//fmt.Println("Type ", err.Type())
-			//fmt.Println(err)
-			validateErrors[err.Field()] = err.Translate(helpers.Trans)
-		}
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validateErrors})
+		ResponseFormValidateError(ctx, err)
 		return
 	}
 

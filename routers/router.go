@@ -9,13 +9,11 @@ var Router *gin.Engine
 
 func init() {
 	Router = gin.Default()
+	Router.Use(Cors())
 	registerAdminRoute()
 }
 
 func registerAdminRoute() {
-
-	Router.POST("/login", apis.Login)
-
 	admin := Router.Group("/admin")
 	{
 		admin.POST("/login", apis.Login)

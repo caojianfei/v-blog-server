@@ -1,14 +1,16 @@
 package main
 
 import (
-	"v-blog/helpers"
-	"v-blog/routers"
+	"fmt"
 	_ "v-blog/routers"
 )
 
 func main() {
-	helpers.InitValidator()
 
-	_ = routers.Router.Run(":8888")
+	fmt.Println("hello world!")
+
+	//helpers.InitValidator()
+
+	// _ = routers.Router.Run(":8888")
 
 }

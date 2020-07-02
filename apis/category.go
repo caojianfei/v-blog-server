@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"v-blog/databases"
@@ -153,6 +154,7 @@ func (c CategoryController) List() gin.HandlerFunc {
 
 		query := databases.DB
 		if name != "" {
+			fmt.Println("name is ", name)
 			query.Where("name like ?", "%"+name+"%")
 		}
 

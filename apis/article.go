@@ -8,6 +8,7 @@ import (
 	"time"
 	"v-blog/consts"
 	"v-blog/databases"
+	"v-blog/helpers"
 	"v-blog/models"
 )
 
@@ -17,13 +18,13 @@ type ArticleController struct {
 var Article ArticleController
 
 type ArticleEditForm struct {
-	Title      string `form:"title" binding:"required"`
+	Title      string `json:"title" binding:"required"`
 	HeadImage  string `form:"headImage" binding:"required"`
 	Content    string `form:"content" binding:"required"`
 	Intro      string `form:"intro"`
 	CategoryId uint   `form:"categoryId" binding:"required"`
 	IsDraft    int    `form:"isDraft"`
-	// PublishedAt time.Time `form:"publishedAt" time_format:"2006-01-02 15:04:05"` # https://github.com/gin-gonic/gin/issues/1193
+	//PublishedAt time.Time `form:"publishedAt" time_format:"2006-01-02 15:04:05"` //# https://github.com/gin-gonic/gin/issues/1193
 	PublishedAt string `form:"publishedAt" binding:"formatData=2006-01-02 15:04:05"`
 	Tags        []uint `form:"tags"`
 }
@@ -33,17 +34,14 @@ func (c ArticleController) Create() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form ArticleEditForm
 		if err := c.ShouldBind(&form); err != nil {
-			ResponseFormValidateError(c, err)
+			helpers.ResponseValidateError(c, err)
 			return
 		}
 
-		var response = ResponseBody{}
 		// 分类检查
 		category := &models.Category{}
 		if databases.DB.First(category, form.CategoryId).RecordNotFound() {
-			response.Code = RecordNotFound
-			response.Message = "文章分类不存在"
-			Response(c, response)
+			helpers.ResponseError(c, helpers.RecordNotFound, "文章分类不存在")
 			return
 		}
 
@@ -54,11 +52,10 @@ func (c ArticleController) Create() gin.HandlerFunc {
 			publishedAt = current
 		} else {
 			var err error
-			publishedAt, err = time.Parse("2006-01-02 15:04:05", articlePublishedAt)
+			publishedAt, err = time.Parse(consts.DefaultTimeFormat, articlePublishedAt)
 			if err != nil {
-				response.Code = RequestParamError
-				response.Message = "文章发布时间错误"
-				Response(c, response)
+				helpers.ResponseError(c, helpers.RequestParamError, "文章发布时间错误")
+				return
 			}
 			if publishedAt.Before(current) {
 				publishedAt = current
@@ -76,15 +73,12 @@ func (c ArticleController) Create() gin.HandlerFunc {
 			PublishedAt: publishedAt,
 		}
 
-
 		tags := make([]models.Tag, len(form.Tags))
 		// 关联标签
 		if len(form.Tags) > 0 {
 			databases.DB.Where(form.Tags).Find(&tags)
 			if len(tags) == 0 {
-				response.Code = RecordNotFound
-				response.Message = "文章标签有误"
-				Response(c, response)
+				helpers.ResponseError(c, helpers.RecordNotFound, "文章标签有误")
 				return
 			} else {
 				article.Tags = tags
@@ -92,17 +86,11 @@ func (c ArticleController) Create() gin.HandlerFunc {
 		}
 
 		if databases.DB.Create(&article).Error != nil {
-			response.Code = RecordCreatedFail
-			response.Message = "文章创建失败"
-			Response(c, response)
+			helpers.ResponseError(c, helpers.RecordCreatedFail, "文章创建失败")
+			return
 		}
 
-		response.Code = 0
-		response.Message = "文章创建成功"
-		response.Data = &gin.H{
-			"id": article.ID,
-		}
-		Response(c, response)
+		helpers.ResponseOk(c, "文章创建成功", &gin.H{"id": article.ID})
 
 		// 标签下文章数量更新
 		for _, tag := range tags {
@@ -121,14 +109,11 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		form := ArticleEditForm{}
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RequestParamError,
-				Message: "参数错误",
-			})
+			helpers.ResponseError(c, helpers.RequestParamError, "文章id错误")
 			return
 		}
 		if err := c.ShouldBind(&form); err != nil {
-			ResponseFormValidateError(c, err)
+			helpers.ResponseValidateError(c, err)
 			return
 		}
 
@@ -139,16 +124,14 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 				Code:    RecordNotFound,
 				Message: "文章不存在或已经被删除",
 			})
+			helpers.ResponseError(c, helpers.RecordNotFound, "文章不存在或已经被删除")
 			return
 		}
 
 		// 分类检查
 		category := &models.Category{}
 		if databases.DB.First(category, form.CategoryId).RecordNotFound() {
-			Response(c, ResponseBody{
-				Code:    RecordNotFound,
-				Message: "文章分类不存在",
-			})
+			helpers.ResponseError(c, helpers.RecordNotFound, "文章分类不存在")
 			return
 		}
 
@@ -186,8 +169,8 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 			publishAt, err := time.Parse(consts.DefaultTimeFormat, form.PublishedAt)
 			if err != nil {
 				Response(c, ResponseBody{
-					Code:RequestParamError,
-					Message:"发布时间填写错误",
+					Code:    RequestParamError,
+					Message: "发布时间填写错误",
 				})
 				return
 			}
@@ -196,7 +179,6 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 				article.PublishedAt = publishAt
 			}
 		}
-
 
 		if err := databases.DB.Save(&article).Error; err != nil {
 			Response(c, ResponseBody{

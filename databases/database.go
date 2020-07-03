@@ -10,8 +10,9 @@ var DB *gorm.DB
 
 func init() {
 	var err error
-	DB, err = gorm.Open("mysql", "root:123456@tcp(localhost:33060)/v-blog?charset=utf8mb4&parseTime=True&loc=Local")
+	DB, err = gorm.Open("mysql", "root:123456@tcp(localhost:3306)/v-blog?charset=utf8mb4&parseTime=True&loc=Local")
 	if err != nil {
 		log.Fatalf(err, "mysql connect error. msg: %s")
 	}
+	DB.LogMode(true)
 }

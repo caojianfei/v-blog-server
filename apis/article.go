@@ -120,10 +120,6 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		// 查询文章
 		article := models.Article{}
 		if databases.DB.First(&article, id).RecordNotFound() {
-			Response(c, ResponseBody{
-				Code:    RecordNotFound,
-				Message: "文章不存在或已经被删除",
-			})
 			helpers.ResponseError(c, helpers.RecordNotFound, "文章不存在或已经被删除")
 			return
 		}
@@ -149,10 +145,7 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		if len(form.Tags) > 0 {
 			databases.DB.Where(form.Tags).Find(&tags)
 			if len(tags) == 0 {
-				Response(c, ResponseBody{
-					Code:    RecordNotFound,
-					Message: "文章标签有误",
-				})
+				helpers.ResponseError(c, helpers.RecordNotFound, "文章标签有误")
 				return
 			} else {
 				article.Tags = tags
@@ -168,10 +161,7 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		if form.PublishedAt != "" {
 			publishAt, err := time.Parse(consts.DefaultTimeFormat, form.PublishedAt)
 			if err != nil {
-				Response(c, ResponseBody{
-					Code:    RequestParamError,
-					Message: "发布时间填写错误",
-				})
+				helpers.ResponseError(c, helpers.RequestParamError, "发布时间填写错误")
 				return
 			}
 			now := time.Now()
@@ -181,19 +171,12 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		}
 
 		if err := databases.DB.Save(&article).Error; err != nil {
-			Response(c, ResponseBody{
-				Code:    RecordUpdateFail,
-				Message: "文章更新失败",
-			})
+			helpers.ResponseError(c, helpers.RecordUpdateFail, "文章更新失败")
 			return
 		}
 
-		Response(c, ResponseBody{
-			Code:    Success,
-			Message: "文章更新成功",
-			Data: &gin.H{
-				"id": article.ID,
-			},
+		helpers.ResponseOk(c, "文章更新成功", &gin.H{
+			"id": article.ID,
 		})
 
 		for _, tag := range tags {

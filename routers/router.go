@@ -11,6 +11,7 @@ func init() {
 	Router = gin.Default()
 	Router.Use(Cors())
 	registerAdminRoute()
+	registerFileRoute()
 }
 
 func registerAdminRoute() {
@@ -41,5 +42,9 @@ func registerAdminRoute() {
 			needLogin.DELETE("/tag/:id", apis.Tag.Delete())
 		}
 	}
+}
+
+func registerFileRoute()  {
+	Router.POST("/files/image", apis.File.UploadImage())
 }
 

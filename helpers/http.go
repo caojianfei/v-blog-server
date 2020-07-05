@@ -21,6 +21,11 @@ const (
 
 	// 请求参数相关
 	RequestParamError = 200
+
+	// 文件
+	PathBaseError = 300
+	PathCreateFail = 301
+	FileUploadFail = 302
 )
 
 

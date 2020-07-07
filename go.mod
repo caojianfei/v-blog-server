@@ -9,6 +9,7 @@ require (
 	github.com/lexkong/log v0.0.0-20180607165131-972f9cd951fc
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
+	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd
 	gopkg.in/fatih/set.v0 v0.2.1
 	gopkg.in/go-playground/validator.v9 v9.29.1

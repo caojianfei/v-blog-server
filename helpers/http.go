@@ -26,6 +26,8 @@ const (
 	PathBaseError = 300
 	PathCreateFail = 301
 	FileUploadFail = 302
+	UploadParamInvalid = 303
+	UploadFileEmpty = 304
 )
 
 

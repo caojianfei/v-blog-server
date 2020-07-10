@@ -3,11 +3,11 @@ package apis
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"mime/multipart"
 	"os"
 	"path"
+	"strconv"
 	"v-blog/databases"
 	"v-blog/helpers"
 	"v-blog/models"
@@ -20,7 +20,6 @@ var File FileController
 
 func (c FileController) UploadImage() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//imageTypes := []string{"image/jpeg", "image/gif", "image/png"}
 		imageTypes := map[string]string{
 			"image/jpeg": "image/jpeg",
 			"image/gif": "image/gif",
@@ -37,25 +36,24 @@ func (c FileController) UploadImage() gin.HandlerFunc {
 			return
 		}
 
-
-		for _, image := range images {
-
-			//fmt.Println("index", index)
-			//fmt.Println(image.Header)
+		result := gin.H{}
+		for index, image := range images {
 			contentType := image.Header.Get("Content-Type")
 			if _, ok := imageTypes[contentType]; !ok {
-				fmt.Println("图片格式错误")
+				result[strconv.Itoa(index)] = false
 				continue
 			}
 
 			uploadedFile, err := uploadFile(c, image, "./upload/images")
 			if err != nil {
-				fmt.Println("图片上传失败：", err)
+				result[strconv.Itoa(index)] = false
 				return
 			}
 
-			fmt.Println(uploadedFile)
+			result[strconv.Itoa(index)] = uploadedFile.FullName
 		}
+
+		helpers.ResponseOk(c, "success", &result)
 	}
 }
 

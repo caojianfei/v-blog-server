@@ -28,6 +28,7 @@ const (
 	FileUploadFail = 302
 	UploadParamInvalid = 303
 	UploadFileEmpty = 304
+	UploadFileInvalid = 305
 )
 
 

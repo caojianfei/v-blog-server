@@ -1,15 +1,21 @@
 package routers
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"v-blog/apis"
 )
 
 var Router *gin.Engine
 
 func init() {
+	fmt.Println("routers init func")
 	Router = gin.Default()
 	Router.Use(Cors())
+	Router.GET("/test", func(context *gin.Context) {
+		fmt.Println("config value is: ", viper.GetString("name"))
+	})
 	registerAdminRoute()
 	registerFileRoute()
 }

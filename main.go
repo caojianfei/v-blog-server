@@ -17,9 +17,8 @@ func init()  {
 
 func main() {
 	helpers.InitValidator()
-	 _ = routers.Router.Run(":8888")
+	_ = routers.Router.Run(":8888")
 }
-
 
 func initConfig() {
 	viper.SetConfigName("config")

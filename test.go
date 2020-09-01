@@ -2,55 +2,30 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"os"
+	"v-blog/config"
 )
 
 func main() {
-	s := gin.Default()
-	s.Static("/assets", "./images/upload")
-	s.POST("/upload", handler())
-	s.Run(":9999")
-}
+	//config.InitConfig(&config.Param{})
+	//config.InitConfig(&config.Param{})
+	//c, err := config.Get()
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return
+	//}
+	//
+	//fmt.Println(c.Db.Host)
 
-
-func handler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		path := "./images/upload/tmp"
-		form, _ := c.MultipartForm()
-		files, ok := form.File["files"]
-		if exist, _ := PathExists(path); !exist {
-			fmt.Printf("path: {%s} not exist", path)
-			err := os.MkdirAll(path, 0755)
-			if err != nil {
-				log.Fatalf("create path err: %s\n", err)
-			}
-		}
-		if ok {
-			fmt.Println("ok")
-			for _, file := range files {
-				err := c.SaveUploadedFile(file, path + "/" + file.Filename)
-				//fmt.Println("err", err)
-				if err != nil {
-					log.Fatalf("SaveUploadedFile err: %s\n", err)
-				}
-			}
-		}
-		//fmt.Println(files, ok)
-
-		c.JSON(http.StatusOK, gin.H{"code": 1, "message": "success"})
+	for i := 0; i < 5; i++ {
+		go func(i int) {
+			fmt.Println("线程：", i)
+			config.InitConfig(&config.Param{})
+			fmt.Println("线程：", i, "执行完成")
+		}(i)
 	}
-}
 
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
+	for {
+		// 发送大量进口了
 	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
+
 }

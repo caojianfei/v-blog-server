@@ -25,10 +25,16 @@ type MyHandler struct {
 }
 
 func (*MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("request start at ", time.Now(), r.URL.Path+"?"+r.URL.RawQuery, "request done at ", time.Now(), "  pid:", os.Getpid())
-	time.Sleep(10 * time.Second)
-	w.Write([]byte("this is test response"))
-	fmt.Println("request done at ", time.Now(), "  pid:", os.Getpid())
+	go func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("request start at ", time.Now(), r.URL.Path+"?"+r.URL.RawQuery, "request done at ", time.Now(), "  pid:", os.Getpid())
+		time.Sleep(10 * time.Second)
+		w.Write([]byte("this is test response"))
+		fmt.Println("request done at ", time.Now(), "  pid:", os.Getpid())
+	}(w, r)
+	//fmt.Println("request start at ", time.Now(), r.URL.Path+"?"+r.URL.RawQuery, "request done at ", time.Now(), "  pid:", os.Getpid())
+	//time.Sleep(10 * time.Second)
+	//w.Write([]byte("this is test response"))
+	//fmt.Println("request done at ", time.Now(), "  pid:", os.Getpid())
 
 }
 
@@ -37,7 +43,12 @@ func main() {
 	fmt.Println("start-up at ", time.Now(), *graceful)
 	if *graceful {
 		f := os.NewFile(3, "")
+		fmt.Println("os.NewFile ", f)
+
 		listener, err = net.FileListener(f)
+		if err != nil {
+			log.Fatalf( "fd listener err: %s \n", err)
+		}
 		fmt.Printf("graceful-reborn  %v %v  %#v \n", f.Fd(), f.Name(), listener)
 	} else {
 		listener, err = net.Listen("tcp", ":1111")

@@ -2,30 +2,25 @@ package main
 
 import (
 	"fmt"
-	"v-blog/config"
+	"os"
+	"syscall"
 )
 
 func main() {
-	//config.InitConfig(&config.Param{})
-	//config.InitConfig(&config.Param{})
-	//c, err := config.Get()
-	//if err != nil {
-	//	fmt.Println(err.Error())
-	//	return
-	//}
-	//
-	//fmt.Println(c.Db.Host)
 
-	for i := 0; i < 5; i++ {
-		go func(i int) {
-			fmt.Println("线程：", i)
-			config.InitConfig(&config.Param{})
-			fmt.Println("线程：", i, "执行完成")
-		}(i)
+	fmt.Printf("Proc pid: %d, os.Args: %v\n", os.Getpid(), os.Args)
+
+	path := os.Args[0]
+	fmt.Println("path", path)
+
+	pid, err := syscall.ForkExec(path, os.Args, &syscall.ProcAttr{
+		Env: os.Environ(),
+		Files: []uintptr{
+			os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd(),
+		}})
+	if err != nil {
+		fmt.Println("fork error: ", err)
+		os.Exit(0)
 	}
-
-	for {
-		// 发送大量进口了
-	}
-
+	fmt.Println("fork proc pid: ", pid)
 }

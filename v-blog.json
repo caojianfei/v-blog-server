@@ -1,9 +1,10 @@
 {
   "version": 1.0,
   "name": "v-blog2",
+  "pidFile": "/var/tmp/v-blog.pid",
   "db": {
     "host": "127.0.0.1",
-    "port": "33060",
+    "port": "3306",
     "user": "root",
     "password": "123456",
     "database": "v-blog",

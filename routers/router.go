@@ -7,7 +7,9 @@ import (
 
 var Router *gin.Engine
 
-func init() {
+// _ = routers.Router.Run(":8888")
+
+func InitRouter() {
 	Router = gin.Default()
 	Router.Use(Cors())
 	registerAdminRoute()

@@ -23,6 +23,7 @@ type Config struct {
 	loaded  bool
 	Version float64
 	Name    string
+	PidFile string
 	Db      struct {
 		Host     string
 		Port     string
@@ -62,12 +63,18 @@ func read() {
 	c.mu.Lock()
 	c.Version = viper.GetFloat64("version")
 	c.Name = viper.GetString("name")
+	c.PidFile = viper.GetString("pidFile")
 	c.Db.Host = viper.GetString("db.host")
 	c.Db.Port = viper.GetString("db.port")
 	c.Db.User = viper.GetString("db.user")
 	c.Db.Password = viper.GetString("db.password")
 	c.Db.Database = viper.GetString("db.database")
 	c.Db.Charset = viper.GetString("db.charset")
+
+	if c.PidFile == "" {
+		c.PidFile = "/var/tmp/v-blog.pid"
+	}
+
 }
 
 func InitConfig(param *Param) {

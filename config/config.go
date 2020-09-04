@@ -22,8 +22,11 @@ type Config struct {
 	mu      sync.Mutex
 	loaded  bool
 	Version float64
+	AppEnv string
 	Name    string
 	PidFile string
+	LogFile string
+	DebugLogFile string
 	Db      struct {
 		Host     string
 		Port     string
@@ -63,7 +66,10 @@ func read() {
 	c.mu.Lock()
 	c.Version = viper.GetFloat64("version")
 	c.Name = viper.GetString("name")
+	c.AppEnv = viper.GetString("appEnv")
 	c.PidFile = viper.GetString("pidFile")
+	c.LogFile = viper.GetString("logFile")
+	c.DebugLogFile = viper.GetString("debugLogFile")
 	c.Db.Host = viper.GetString("db.host")
 	c.Db.Port = viper.GetString("db.port")
 	c.Db.User = viper.GetString("db.user")
@@ -74,7 +80,12 @@ func read() {
 	if c.PidFile == "" {
 		c.PidFile = "/var/tmp/v-blog.pid"
 	}
-
+	if c.LogFile == "" {
+		c.LogFile = "/var/logs/v-blog.log"
+	}
+	if c.DebugLogFile == "" {
+		c.DebugLogFile = "/var/logs/v-blog-debug.log"
+	}
 }
 
 func InitConfig(param *Param) {

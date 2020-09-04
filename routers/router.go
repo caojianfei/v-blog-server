@@ -2,10 +2,12 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"os"
 	"time"
 	"v-blog/apis"
+	"v-blog/config"
 )
 
 var Router *gin.Engine
@@ -13,6 +15,24 @@ var Router *gin.Engine
 // _ = routers.Router.Run(":8888")
 
 func InitRouter() {
+	conf, err := config.Get()
+	if err != nil {
+		log.Fatalf("Read config err: %s", err)
+	}
+
+	var mode string
+
+	switch conf.AppEnv {
+	case "debug":
+		mode = gin.DebugMode
+	case "release":
+		mode = gin.ReleaseMode
+	case "test":
+		mode = gin.TestMode
+	default:
+		mode = gin.DebugMode
+	}
+	gin.SetMode(mode)
 	Router = gin.Default()
 	Router.Use(Cors())
 	Router.GET("/test", func(context *gin.Context) {
@@ -53,7 +73,6 @@ func registerAdminRoute() {
 	}
 }
 
-func registerFileRoute()  {
+func registerFileRoute() {
 	Router.POST("/files/image", apis.File.UploadImage())
 }
-

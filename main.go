@@ -47,8 +47,9 @@ func init() {
 
 func main() {
 	fmt.Println("=============================")
-	fmt.Println("os.Args", os.Args)
-	fmt.Println("os.Environ", os.Environ())
+	fmt.Println("daemon", os.Getenv("daemon"))
+	fmt.Println("graceful", os.Getenv("graceful"))
+	fmt.Println("=============================")
 	flag.Parse()
 	// 信号不为空
 	if s != "" {
@@ -79,7 +80,8 @@ func start() {
 
 	server := &http.Server{
 		Handler:     routers.Router,
-		ReadTimeout: time.Second,
+		ReadTimeout: time.Second * 10,
+		WriteTimeout: time.Second * 10,
 	}
 
 	httpServer = server
@@ -207,8 +209,7 @@ func quit() {
 
 // 停止程序
 func stop() {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second * 5)
-	err := httpServer.Shutdown(ctx)
+	err := stopServe()
 	if err != nil {
 		log.Fatalf("Proc stop fail. err: %s\n", err)
 	}
@@ -221,6 +222,11 @@ func reopen() {
 	if err := os.Setenv("graceful", "false"); err != nil {
 		log.Fatalf("Set env fail. err: %s", err)
 	}
+
+	if err := stopServe(); err != nil {
+		log.Fatalf("Stop http server error: %s\n", err)
+	}
+
 	cmd := exec.Cmd{
 		Path: os.Args[0],
 		Args: os.Args,
@@ -256,6 +262,10 @@ func reload() {
 		log.Fatalf("Get fd err: %s\n", err)
 	}
 
+	if err := clearPid(); err != nil {
+		log.Fatalf("Pid file clear fail. err: %s\n", err)
+	}
+
 	cmd := exec.Cmd{
 		Path: os.Args[0],
 		Args: os.Args,
@@ -266,13 +276,12 @@ func reload() {
 		ExtraFiles: []*os.File{tld},
 	}
 
-	if err := clearPid(); err != nil {
-		log.Fatalf("Pid file clear fail. err: %s\n", err)
-	}
-
 	if err := cmd.Start(); err != nil {
 		log.Fatalf("Reload err: %s\n", err)
 	}
+
+	_ = stopServe()
+	shutdown <-true
 }
 
 // 写 pid 文件
@@ -339,6 +348,11 @@ func readPid() (int, error) {
 	}
 
 	return strconv.Atoi(string(pidByte))
+}
+
+func stopServe() error {
+	ctx, _ := context.WithTimeout(context.Background(), time.Second * 5)
+	return httpServer.Shutdown(ctx)
 }
 
 

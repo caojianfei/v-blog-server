@@ -2,7 +2,7 @@ package apis
 
 import (
 	"github.com/gin-gonic/gin"
-	"gopkg.in/go-playground/validator.v9"
+	"github.com/jinzhu/gorm"
 	"net/http"
 	"time"
 	"v-blog/databases"
@@ -11,35 +11,6 @@ import (
 )
 
 type FormatValidateError map[string]string
-
-// 400 响应
-func ResponseFormValidateError(ctx *gin.Context, err error) {
-	validateErrors := make(FormatValidateError)
-	if err, ok := err.(validator.ValidationErrors); ok {
-		for _, err := range err {
-			//fmt.Println("Tag ", err.Tag())
-			//fmt.Println("ActualTag ", err.ActualTag())
-			//fmt.Println("Namespace ", err.Namespace())
-			//fmt.Println("StructNamespace ", err.StructNamespace())
-			//fmt.Println("Field ", err.Field())
-			//fmt.Println("StructField ", err.StructField())
-			//fmt.Println("Value ", err.Value())
-			//fmt.Println("Param ", err.Param())
-			//fmt.Println("Kind ", err.Kind())
-			//fmt.Println("Type ", err.Type())
-			//fmt.Println(err)
-			validateErrors[err.Field()] = err.Translate(helpers.Trans)
-		}
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, validateErrors)
-		return
-	} else {
-		ctx.AbortWithStatusJSON(
-			http.StatusBadRequest,
-			gin.H{},
-		)
-		return
-	}
-}
 
 
 type ResponseBody struct {
@@ -74,44 +45,32 @@ type LoginForm struct {
 var Login = func(ctx *gin.Context) {
 	var form LoginForm
 	if err := ctx.ShouldBind(&form); err != nil {
-		ResponseFormValidateError(ctx, err)
+		helpers.ResponseValidateError(ctx, err)
 		return
 	}
 
 	// 通过 email 查询用户信息
-	user := &models.User{}
-	if databases.DB.Where(&models.User{Email:form.Email}).First(user).RecordNotFound() {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": RecordNotFound,
-			"message": "账号或密码错误",
-			"time": time.Now().Unix(),
-			"data": gin.H{},
-		})
+	user := &models.User{Email: form.Email}
+	if err := databases.DB.Where(user).First(user).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			helpers.ResponseError(ctx, helpers.RecordNotFound, "账号或密码错误")
+		} else {
+			helpers.ResponseError(ctx, helpers.DatabaseUnknownErr, "账号查询失败")
+		}
 		return
 	}
 
 	encryptPassword, _ := helpers.EncryptPassword(form.Password)
 	if user.Password != encryptPassword {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": RecordNotFound,
-			"message": "账号或密码错误",
-			"time": time.Now().Unix(),
-			"data": gin.H{},
-		})
+		helpers.ResponseError(ctx, helpers.RecordNotFound, "账号或密码错误")
 		return
 	}
 
 	// 返回 token
 	token, _ := helpers.GenerateJWTByUser(user)
-	ctx.JSON(http.StatusOK, gin.H{
-		"code": Success,
-		"message": "登录成功",
-		"time": time.Now().Unix(),
-		"data": gin.H{
-			"token": token,
-		},
+	helpers.ResponseOk(ctx, "登录成功", &gin.H{
+		"token": token,
 	})
-
 	return
 }
 

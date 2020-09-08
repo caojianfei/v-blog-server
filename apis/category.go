@@ -1,10 +1,12 @@
 package apis
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 	"strconv"
+	"v-blog/consts"
 	"v-blog/databases"
+	"v-blog/helpers"
 	"v-blog/models"
 )
 
@@ -21,39 +23,30 @@ type CategoryEditForm struct {
 // 新增分类
 func (c CategoryController) Create() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		var form CategoryEditForm
-		var responseBody ResponseBody
 		if err := c.ShouldBind(&form); err != nil {
-			ResponseFormValidateError(c, err)
+			helpers.ResponseValidateError(c, err)
 			return
 		}
 
-		var existCategory models.Category
+		existCategory := &models.Category{Name: form.Name}
 		// 去重查询
-		databases.DB.Where(&models.Category{Name: form.Name}).First(&existCategory)
+		databases.DB.Where(existCategory).First(existCategory)
 		if existCategory.ID > 0 {
-			responseBody.Message = "该分类名称已存在"
-			responseBody.Code = RecordExist
-			Response(c, responseBody)
+			helpers.ResponseError(c, helpers.RecordExist, "分类名称已存在")
 			return
 		}
 
 		// 创建分类
 		newCategory := models.Category{Name: form.Name, Description: form.Description}
 		if err := databases.DB.Create(&newCategory).Error; err != nil {
-			responseBody.Message = "分类添加失败"
-			responseBody.Code = RecordCreatedFail
-			Response(c, responseBody)
+			helpers.ResponseError(c, helpers.RecordCreatedFail, "分类添加失败")
 			return
 		}
 
-		responseBody.Code = Success
-		responseBody.Message = "分类添加成功"
-		responseBody.Data = &gin.H{
+		helpers.ResponseOk(c, "添加成功", &gin.H{
 			"id": newCategory.ID,
-		}
-		Response(c, responseBody)
+		})
 		return
 	}
 }
@@ -62,86 +55,75 @@ func (c CategoryController) Create() gin.HandlerFunc {
 func (c CategoryController) Edit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var form CategoryEditForm
-		var responseBody ResponseBody
 		if err := c.ShouldBind(&form); err != nil {
-			ResponseFormValidateError(c, err)
+			helpers.ResponseValidateError(c, err)
 			return
 		}
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
+
+		id, err := helpers.GetIdFromParam(c)
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RequestParamError,
-				Message: "参数错误",
-			})
-			return
-		}
-		category := models.Category{}
-		if databases.DB.First(&category, id).RecordNotFound() {
-			Response(c, ResponseBody{
-				Code:    RecordNotFound,
-				Message: "分类不存在或已经被删除",
-			})
+			helpers.ResponseError(c, helpers.RequestParamError, "参数错误")
 			return
 		}
 
-		var existCategory models.Category
+		category := &models.Category{}
+		if err := databases.DB.First(&category, id).Error; err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				helpers.ResponseError(c, helpers.RecordNotFound, "分类不存在或已经被删除")
+			} else {
+				helpers.ResponseError(c, helpers.DatabaseUnknownErr, "查询失败")
+			}
+			return
+		}
+
 		// 去重查询
-		databases.DB.Where(&models.Category{Name: form.Name}).Where("id <> ?", category.ID).First(&existCategory)
+		existCategory := &models.Category{Name: form.Name}
+		databases.DB.Where(existCategory).Where("id <> ?", category.ID).First(&existCategory)
 		if existCategory.ID > 0 {
-			responseBody.Message = "该分类名称已存在"
-			responseBody.Code = RecordExist
-			Response(c, responseBody)
+			helpers.ResponseError(c, helpers.RecordExist, "该分类名称已存在")
 			return
 		}
 
+		// 更新分类
 		category.Name = form.Name
 		category.Description = form.Description
 		if err := databases.DB.Save(&category).Error; err != nil {
-			responseBody.Code = RecordUpdateFail
-			responseBody.Message = "分类更新失败"
-			Response(c, responseBody)
+			helpers.ResponseError(c, helpers.RecordUpdateFail, "分类更新失败")
 			return
 		}
 
-		responseBody.Code = Success
-		responseBody.Message = "分类更新成功"
-		Response(c, responseBody)
+		helpers.ResponseOk(c, "更新成功", &gin.H{})
+		return
 	}
 }
 
 // 获取分类详情
 func (c CategoryController) Show() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
+		id, err := helpers.GetIdFromParam(c)
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RequestParamError,
-				Message: "参数错误",
-			})
+			helpers.ResponseError(c, helpers.RequestParamError, "参数错误")
 			return
 		}
-		category := models.Category{}
-		if databases.DB.First(&category, id).RecordNotFound() {
-			Response(c, ResponseBody{
-				Code:    RecordNotFound,
-				Message: "分类不存在或已经被删除",
-			})
+		category := &models.Category{}
+		if err := databases.DB.First(&category, id).Error; err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				helpers.ResponseError(c, helpers.RecordNotFound, "分类不存在或已经被删除")
+			} else {
+				helpers.ResponseError(c, helpers.DatabaseUnknownErr, "查询失败")
+			}
 			return
 		}
 
-		Response(c, ResponseBody{
-			Code:    Success,
-			Message: "success",
-			Data: &gin.H{
-				"id":          category.ID,
-				"name":        category.Name,
-				"description": category.Description,
-				"createdAt":   category.CreatedAt,
-				"updatedAt":   category.UpdatedAt,
-			},
+		helpers.ResponseOk(c, "success", &gin.H{
+			"id":          category.ID,
+			"name":        category.Name,
+			"description": category.Description,
+			"createdAt":   category.CreatedAt.Format(consts.DefaultTimeFormat),
+			"updatedAt":   category.UpdatedAt.Format(consts.DefaultTimeFormat),
 		})
+
+		return
 	}
 }
 
@@ -150,11 +132,10 @@ func (c CategoryController) List() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		name := c.DefaultQuery("name", "")
 		pageSizeStr := c.DefaultQuery("pageSize", "20")
-		pageStr := c.DefaultQuery("page", "")
+		pageStr := c.DefaultQuery("page", "1")
 
 		query := databases.DB
 		if name != "" {
-			fmt.Println("name is ", name)
 			query.Where("name like ?", "%"+name+"%")
 		}
 
@@ -175,6 +156,7 @@ func (c CategoryController) List() gin.HandlerFunc {
 		if pageSize < 1 {
 			pageSize = 1
 		}
+
 		list := make([]models.Category, pageSize)
 		total := 0
 		query.Model(&models.Category{}).Count(&total)
@@ -186,61 +168,48 @@ func (c CategoryController) List() gin.HandlerFunc {
 				"id":          item.ID,
 				"name":        item.Name,
 				"description": item.Description,
-				"createdAt":   item.CreatedAt.Format("2006-01-02 15:04:05"),
-				"updatedAt":   item.UpdatedAt.Format("2006-01-02 15:04:05"),
+				"createdAt":   item.CreatedAt.Format(consts.DefaultTimeFormat),
+				"updatedAt":   item.UpdatedAt.Format(consts.DefaultTimeFormat),
 			}
 		}
 
-		Response(c, ResponseBody{
-			Code:    Success,
-			Message: "success",
-			Data: &gin.H{
-				"list":     result,
-				"page":     page,
-				"pageSize": pageSize,
-				"total":    total,
-				"isEnd":    len(result) < pageSize,
-			},
+		helpers.ResponseOk(c, "success",  &gin.H{
+			"list":     result,
+			"page":     page,
+			"pageSize": pageSize,
+			"total":    total,
+			"isEnd":    len(result) < pageSize,
 		})
-
+		return
 	}
 }
 
 // 删除分类
 func (c CategoryController) Delete() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
+		id, err := helpers.GetIdFromParam(c)
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RequestParamError,
-				Message: "参数错误",
-			})
+			helpers.ResponseError(c, helpers.RequestParamError, "参数错误")
 			return
 		}
 
 		category := models.Category{}
-		if databases.DB.First(&category, id).RecordNotFound() {
-			Response(c, ResponseBody{
-				Code:    RecordNotFound,
-				Message: "分类不存在或已经被删除",
-			})
+		if err := databases.DB.First(&category, id).Error; err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				helpers.ResponseError(c, helpers.RecordNotFound, "分类不存在或已经被删除")
+			} else {
+				helpers.ResponseError(c, helpers.DatabaseUnknownErr, "查询失败")
+			}
 			return
 		}
 
 		err = databases.DB.Delete(&category).Error
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RecordDeleteFail,
-				Message: "分类删除失败",
-			})
+			helpers.ResponseError(c, helpers.RecordDeleteFail, "分类删除失败")
 			return
 		}
 
-		Response(c, ResponseBody{
-			Code:    Success,
-			Message: "删除成功",
-		})
+		helpers.ResponseOk(c, "删除成功", &gin.H{})
 		return
 	}
 }

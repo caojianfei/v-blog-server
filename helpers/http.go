@@ -2,9 +2,11 @@ package helpers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
 	"net/http"
+	"strconv"
 	"time"
 	"unicode"
 )
@@ -13,29 +15,29 @@ const (
 	Success = 0
 
 	// 数据库相关
-	RecordNotFound = 100
-	RecordExist = 101
-	RecordCreatedFail = 102
-	RecordUpdateFail = 103
-	RecordDeleteFail  = 104
+	RecordNotFound     = 100
+	RecordExist        = 101
+	RecordCreatedFail  = 102
+	RecordUpdateFail   = 103
+	RecordDeleteFail   = 104
+	DatabaseUnknownErr = 110
 
 	// 请求参数相关
 	RequestParamError = 200
 
 	// 文件
-	PathBaseError = 300
-	PathCreateFail = 301
-	FileUploadFail = 302
+	PathBaseError      = 300
+	PathCreateFail     = 301
+	FileUploadFail     = 302
 	UploadParamInvalid = 303
-	UploadFileEmpty = 304
-	UploadFileInvalid = 305
+	UploadFileEmpty    = 304
+	UploadFileInvalid  = 305
 )
 
-
 type HttpResponse struct {
-	Code int
+	Code    int
 	Message string
-	Data *gin.H
+	Data    *gin.H
 }
 
 // http 响应
@@ -88,7 +90,7 @@ func ResponseValidateError(ctx *gin.Context, err error) {
 	switch err.(type) {
 	case validator.ValidationErrors:
 		if err, ok := err.(validator.ValidationErrors); ok {
-			for _, err := range err{
+			for _, err := range err {
 				//fmt.Println("Tag ", err.Tag())
 				//fmt.Println("ActualTag ", err.ActualTag())
 				//fmt.Println("Namespace ", err.Namespace())
@@ -125,3 +127,12 @@ func ToLowerCase(s string) string {
 	return string(sRune)
 }
 
+// 从请求参数中获取 id
+func GetIdFromParam(ctx *gin.Context) (int, error) {
+	idStr := ctx.Param("id")
+	if idStr == "" {
+		return 0, errors.New("no id param")
+	}
+
+	return strconv.Atoi(idStr)
+}

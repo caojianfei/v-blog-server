@@ -3,9 +3,6 @@ package routers
 import (
 	"github.com/gin-gonic/gin"
 	"log"
-	"net/http"
-	"os"
-	"time"
 	"v-blog/apis"
 	"v-blog/config"
 )
@@ -35,10 +32,6 @@ func InitRouter() {
 	gin.SetMode(mode)
 	Router = gin.Default()
 	Router.Use(Cors())
-	Router.GET("/test", func(context *gin.Context) {
-		time.Sleep(time.Second * 5)
-		context.JSON(http.StatusOK, gin.H{"pid": os.Getpid()})
-	})
 	registerAdminRoute()
 	registerFileRoute()
 }

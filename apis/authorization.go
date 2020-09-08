@@ -3,8 +3,6 @@ package apis
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"net/http"
-	"time"
 	"v-blog/databases"
 	"v-blog/helpers"
 	"v-blog/models"
@@ -12,33 +10,8 @@ import (
 
 type FormatValidateError map[string]string
 
-
-type ResponseBody struct {
-	Code int
-	Message string
-	Data *gin.H
-}
-// 200 响应
-func Response(ctx *gin.Context, body ResponseBody) {
-	responseBody := gin.H{}
-	responseBody["code"] = body.Code
-	if body.Message == "" {
-		responseBody["message"] = "success"
-	} else {
-		responseBody["message"] = body.Message
-	}
-	if body.Data == nil {
-		responseBody["data"] = gin.H{}
-	} else {
-		responseBody["data"] = body.Data
-	}
-	responseBody["time"] = time.Now().Unix()
-
-	ctx.JSON(http.StatusOK, responseBody)
-}
-
 type LoginForm struct {
-	Email string `form:"email" binding:"required,email"`
+	Email    string `form:"email" binding:"required,email"`
 	Password string `form:"password" binding:"required"`
 }
 
@@ -73,5 +46,3 @@ var Login = func(ctx *gin.Context) {
 	})
 	return
 }
-
-

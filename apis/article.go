@@ -24,7 +24,7 @@ type ArticleEditForm struct {
 	Intro      string `form:"intro"`
 	CategoryId uint   `form:"categoryId" binding:"required"`
 	IsDraft    int    `form:"isDraft"`
-	//PublishedAt time.Time `form:"publishedAt" time_format:"2006-01-02 15:04:05"` //# https://github.com/gin-gonic/gin/issues/1193
+	// PublishedAt time.Time `form:"publishedAt" time_format:"2006-01-02 15:04:05"` //# https://github.com/gin-gonic/gin/issues/1193
 	PublishedAt string `form:"publishedAt" binding:"formatData=2006-01-02 15:04:05"`
 	Tags        []uint `form:"tags"`
 }
@@ -105,11 +105,10 @@ func (c ArticleController) Create() gin.HandlerFunc {
 // 编辑文章
 func (c ArticleController) Edit() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idStr := c.Param("id")
 		form := ArticleEditForm{}
-		id, err := strconv.Atoi(idStr)
+		id, err := helpers.GetIdFromParam(c)
 		if err != nil {
-			helpers.ResponseError(c, helpers.RequestParamError, "文章id错误")
+			helpers.ResponseError(c, helpers.RequestParamError, "参数错误")
 			return
 		}
 		if err := c.ShouldBind(&form); err != nil {
@@ -118,8 +117,8 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		}
 
 		// 查询文章
-		article := models.Article{}
-		if databases.DB.First(&article, id).RecordNotFound() {
+		article := &models.Article{}
+		if databases.DB.First(article, id).RecordNotFound() {
 			helpers.ResponseError(c, helpers.RecordNotFound, "文章不存在或已经被删除")
 			return
 		}
@@ -136,11 +135,11 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		databases.DB.Model(&article).Related(&oldTags, "Tags")
 		for _, oldTag := range oldTags {
 			go func(tag models.Tag) {
-				oldTag.DecreaseArticleCount()
+				tag.DecreaseArticleCount()
 			}(oldTag)
 		}
 
-		databases.DB.Model(&article).Association("Tags").Clear()
+		databases.DB.Model(article).Association("Tags").Clear()
 		tags := make([]models.Tag, len(form.Tags))
 		if len(form.Tags) > 0 {
 			databases.DB.Where(form.Tags).Find(&tags)
@@ -170,7 +169,7 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 			}
 		}
 
-		if err := databases.DB.Save(&article).Error; err != nil {
+		if err := databases.DB.Save(article).Error; err != nil {
 			helpers.ResponseError(c, helpers.RecordUpdateFail, "文章更新失败")
 			return
 		}
@@ -191,23 +190,16 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 // 文章详情
 func (c ArticleController) Show() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
+		id, err := helpers.GetIdFromParam(c)
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RequestParamError,
-				Message: "参数错误",
-			})
+			helpers.ResponseError(c, helpers.RequestParamError, "参数错误")
 			return
 		}
 		tags := []models.Tag{{}}
 		category := models.Category{}
-		var responseBody ResponseBody
 		article := models.Article{}
 		if databases.DB.First(&article, id).RecordNotFound() {
-			responseBody.Code = RecordNotFound
-			responseBody.Message = "文章不存在或已经被删除"
-			Response(c, responseBody)
+			helpers.ResponseError(c, helpers.RecordNotFound, "文章不存在或已经被删除")
 			return
 		}
 
@@ -223,7 +215,7 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			formatTags[index] = item
 		}
 
-		responseBody.Data = &gin.H{
+		helpers.ResponseOk(c, "success", &gin.H{
 			"id":        article.ID,
 			"title":     article.Title,
 			"headImage": article.HeadImage,
@@ -234,8 +226,7 @@ func (c ArticleController) Show() gin.HandlerFunc {
 				"name": category.Name,
 			},
 			"tags": formatTags,
-		}
-		Response(c, responseBody)
+		})
 		return
 	}
 }
@@ -365,14 +356,12 @@ func (c ArticleController) List() gin.HandlerFunc {
 			formatArticles[index] = formatArticle
 		}
 
-		Response(c, ResponseBody{
-			Data: &gin.H{
-				"list":     formatArticles,
-				"pageSize": pageSize,
-				"page":     page,
-				"total":    total,
-				"isEnd":    len(articles) < pageSize,
-			},
+		helpers.ResponseOk(c, "success", &gin.H{
+			"list":     formatArticles,
+			"pageSize": pageSize,
+			"page":     page,
+			"total":    total,
+			"isEnd":    len(articles) < pageSize,
 		})
 		return
 	}
@@ -381,22 +370,15 @@ func (c ArticleController) List() gin.HandlerFunc {
 // 删除文章
 func (c ArticleController) Delete() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idStr := c.Query("id")
-		id, err := strconv.Atoi(idStr)
+		id, err := helpers.GetIdFromParam(c)
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RequestParamError,
-				Message: "参数错误",
-			})
+			helpers.ResponseError(c, helpers.RequestParamError, "参数错误")
 			return
 		}
 		// 查询文章
 		article := models.Article{}
 		if databases.DB.First(&article, id).RecordNotFound() {
-			Response(c, ResponseBody{
-				Code:    RecordNotFound,
-				Message: "文章不存在或已经被删除",
-			})
+			helpers.ResponseError(c, helpers.RecordNotFound, "文章不存在或已经被删除")
 			return
 		}
 
@@ -410,17 +392,11 @@ func (c ArticleController) Delete() gin.HandlerFunc {
 
 		err = databases.DB.Delete(&article).Error
 		if err != nil {
-			Response(c, ResponseBody{
-				Code:    RecordDeleteFail,
-				Message: "文章删除失败",
-			})
+			helpers.ResponseError(c, helpers.RecordDeleteFail, "删除失败")
 			return
 		}
 
-		Response(c, ResponseBody{
-			Code:    Success,
-			Message: "文章删除成功",
-		})
+		helpers.ResponseOk(c, "删除成功", &gin.H{})
 		return
 	}
 }

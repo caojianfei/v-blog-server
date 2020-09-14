@@ -24,9 +24,13 @@ type Config struct {
 	Version float64
 	AppEnv string
 	Name    string
+	Host string
 	PidFile string
 	LogFile string
 	DebugLogFile string
+	UploadDir struct{
+		Images string
+	}
 	Db      struct {
 		Host     string
 		Port     string
@@ -35,6 +39,11 @@ type Config struct {
 		Database string
 		Charset  string
 	}
+	//Http struct{
+	//	Scheme string
+	//	Host string
+	//	Port int
+	//}
 }
 
 var c *Config = &Config{}
@@ -65,17 +74,22 @@ func read() {
 	defer c.mu.Unlock()
 	c.mu.Lock()
 	c.Version = viper.GetFloat64("version")
+	c.Host = viper.GetString("host")
 	c.Name = viper.GetString("name")
 	c.AppEnv = viper.GetString("appEnv")
 	c.PidFile = viper.GetString("pidFile")
 	c.LogFile = viper.GetString("logFile")
 	c.DebugLogFile = viper.GetString("debugLogFile")
+	c.UploadDir.Images = viper.GetString("uploadDir.images")
 	c.Db.Host = viper.GetString("db.host")
 	c.Db.Port = viper.GetString("db.port")
 	c.Db.User = viper.GetString("db.user")
 	c.Db.Password = viper.GetString("db.password")
 	c.Db.Database = viper.GetString("db.database")
 	c.Db.Charset = viper.GetString("db.charset")
+	//c.Http.Scheme = viper.GetString("http.scheme")
+	//c.Http.Host = viper.GetString("http.host")
+	//c.Http.Port = viper.GetInt("http.port")
 
 	if c.PidFile == "" {
 		c.PidFile = "/var/tmp/v-blog.pid"
@@ -85,6 +99,9 @@ func read() {
 	}
 	if c.DebugLogFile == "" {
 		c.DebugLogFile = "/var/logs/v-blog-debug.log"
+	}
+	if c.UploadDir.Images == "" {
+		c.UploadDir.Images = "./upload/images"
 	}
 }
 

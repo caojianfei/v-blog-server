@@ -3,11 +3,13 @@ package apis
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"mime/multipart"
 	"os"
 	"path"
-	"strconv"
+	"time"
+	"v-blog/config"
 	"v-blog/databases"
 	"v-blog/helpers"
 	"v-blog/models"
@@ -36,24 +38,30 @@ func (c FileController) UploadImage() gin.HandlerFunc {
 			return
 		}
 
-		result := gin.H{}
+		result := make([]interface{}, len(images))
 		for index, image := range images {
 			contentType := image.Header.Get("Content-Type")
 			if _, ok := imageTypes[contentType]; !ok {
-				result[strconv.Itoa(index)] = false
+				result[index] = ""
 				continue
 			}
 
-			uploadedFile, err := uploadFile(c, image, "./upload/images")
+			conf, _ := config.Get()
+			uploadedFile, err := uploadFile(c, image, conf.UploadDir.Images)
 			if err != nil {
-				result[strconv.Itoa(index)] = false
+				result[index] = ""
 				return
 			}
 
-			result[strconv.Itoa(index)] = uploadedFile.FullName
+			url, err := uploadedFile.Url()
+			if err != nil {
+				result[index] = ""
+			}
+
+			result[index] = url
 		}
 
-		helpers.ResponseOk(c, "success", &result)
+		helpers.ResponseOk(c, "success", &gin.H{"list": result})
 	}
 }
 
@@ -80,7 +88,9 @@ func uploadFile(c *gin.Context ,file *multipart.FileHeader, basePath string) (mo
 		return uploadedFile, nil
 	}
 
-	pathExist, e := PathExists(basePath)
+	date := fmt.Sprintf("%d-%d-%d", time.Now().Year(), time.Now().Month(), time.Now().Day())
+	basePath = fmt.Sprintf("%s/%s", basePath, date)
+	pathExist, e := helpers.PathExists(basePath)
 	if e != nil {
 		return uploadedFile, e
 	}
@@ -101,6 +111,7 @@ func uploadFile(c *gin.Context ,file *multipart.FileHeader, basePath string) (mo
 
 	uploadedFile.Size = file.Size
 	uploadedFile.Name = filename
+	uploadedFile.Date = date
 	uploadedFile.Ext = fileExt
 	uploadedFile.Md5 = md5Str
 	uploadedFile.FullName = savePath
@@ -112,16 +123,4 @@ func uploadFile(c *gin.Context ,file *multipart.FileHeader, basePath string) (mo
 	}
 
 	return uploadedFile, nil
-}
-
-
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }

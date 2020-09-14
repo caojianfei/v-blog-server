@@ -1,10 +1,14 @@
 {
   "version": 1.0,
-  "appEnv": "release",
+  "host": "http://localhost:8888",
+  "appEnv": "debug",
   "name": "v-blog2",
   "pidFile": "/var/tmp/v-blog.pid",
   "logFile": "/var/logs/v-blog.log",
   "debugLogFile": "/var/logs/v-blog-debug.log",
+  "uploadDir" : {
+    "images": "./upload/images"
+  },
   "db": {
     "host": "127.0.0.1",
     "port": "3306",

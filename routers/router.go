@@ -67,5 +67,7 @@ func registerAdminRoute() {
 }
 
 func registerFileRoute() {
+	conf, _ := config.Get()
 	Router.POST("/files/image", apis.File.UploadImage())
+	Router.Static("/images", conf.UploadDir.Images)
 }

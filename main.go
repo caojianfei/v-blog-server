@@ -194,6 +194,15 @@ func daemon() {
 	log.Println("Start in daemon.")
 	_ = os.Setenv("daemon", "true")
 
+	f := conf.DebugLogFile
+	fd := path.Dir(f)
+	if ex, err := helpers.PathExists(fd); err == nil && ex == false {
+		err := os.MkdirAll(fd, 0755)
+		if err != nil {
+			log.Fatalf("mkdir %s error: %s", fd, err)
+		}
+	}
+
 	stdFile, err := os.OpenFile(conf.DebugLogFile, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalf("OpenFile v-blog.debug err: %s", err)

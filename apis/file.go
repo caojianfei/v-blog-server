@@ -38,27 +38,32 @@ func (c FileController) UploadImage() gin.HandlerFunc {
 			return
 		}
 
-		result := make([]interface{}, len(images))
+		result := make([]gin.H, len(images))
 		for index, image := range images {
 			contentType := image.Header.Get("Content-Type")
 			if _, ok := imageTypes[contentType]; !ok {
-				result[index] = ""
+				result[index] = gin.H{}
 				continue
 			}
 
 			conf, _ := config.Get()
 			uploadedFile, err := uploadFile(c, image, conf.UploadDir.Images)
 			if err != nil {
-				result[index] = ""
+				result[index] = gin.H{}
 				return
 			}
 
 			url, err := uploadedFile.Url()
 			if err != nil {
-				result[index] = ""
+				result[index] = gin.H{}
 			}
 
-			result[index] = url
+			result[index] = gin.H{
+				"url": url,
+				"name": uploadedFile.Name,
+				"id": uploadedFile.ID,
+				"md5": uploadedFile.Md5,
+			}
 		}
 
 		helpers.ResponseOk(c, "success", &gin.H{"list": result})

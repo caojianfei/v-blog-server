@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"strconv"
@@ -173,7 +174,7 @@ func (c CategoryController) List() gin.HandlerFunc {
 			}
 		}
 
-		helpers.ResponseOk(c, "success",  &gin.H{
+		helpers.ResponseOk(c, "success", &gin.H{
 			"list":     result,
 			"page":     page,
 			"pageSize": pageSize,
@@ -210,6 +211,47 @@ func (c CategoryController) Delete() gin.HandlerFunc {
 		}
 
 		helpers.ResponseOk(c, "删除成功", &gin.H{})
+		return
+	}
+}
+
+// 根据标题查询分类列表
+func (c CategoryController) QueryByName() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		name := c.Param("title")
+		if name == "" {
+			helpers.ResponseOk(c, "success", &gin.H{
+				"list": make(gin.H),
+			})
+			return
+		}
+
+		var categories []models.Category
+
+		err := databases.DB.Where("name like ?", fmt.Sprintf("%%%s%%", name)).Find(&categories).Error
+		if err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				helpers.ResponseOk(c, "success", &gin.H{
+					"list": make(gin.H),
+				})
+				return
+			} else {
+				helpers.ResponseError(c, helpers.DatabaseUnknownErr, "查询失败")
+				return
+			}
+		}
+
+		list := make([]gin.H, len(categories))
+		for index, item := range categories {
+			list[index] = gin.H{
+				"value": item.ID,
+				"label": item.Name,
+			}
+		}
+
+		helpers.ResponseOk(c, "success", &gin.H{
+			"list": list,
+		})
 		return
 	}
 }

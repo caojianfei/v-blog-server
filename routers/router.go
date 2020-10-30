@@ -55,6 +55,7 @@ func registerAdminRoute() {
 			needLogin.DELETE("/category/:id", apis.Category.Delete())
 			needLogin.POST("/category/:id", apis.Category.Edit())
 			needLogin.GET("/category/:id", apis.Category.Show())
+			needLogin.GET("/categories/:title", apis.Category.QueryByName())
 
 			// 标签接口
 			needLogin.POST("/tag", apis.Tag.Create())

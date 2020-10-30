@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"strconv"
@@ -212,6 +213,45 @@ func (c TagController) Delete() gin.HandlerFunc {
 		}
 
 		helpers.ResponseOk(c, "删除成功", &gin.H{})
+		return
+	}
+}
+
+func (c TagController) QueryByName() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		name := c.Param("name")
+		if name == "" {
+			helpers.ResponseOk(c, "success", &gin.H{
+				"list": make(gin.H),
+			})
+			return
+		}
+
+		var tags []models.Tag
+		err := databases.DB.Where("name like ?", fmt.Sprintf("%%%s%%", name)).Find(&tags).Error
+		if err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				helpers.ResponseOk(c, "success", &gin.H{
+					"list": make(gin.H),
+				})
+				return
+			} else {
+				helpers.ResponseError(c, helpers.DatabaseUnknownErr, "查询失败")
+				return
+			}
+		}
+
+		list := make([]gin.H, len(tags))
+		for index, item := range tags {
+			list[index] = gin.H{
+				"value": item.ID,
+				"label": item.Name,
+			}
+		}
+
+		helpers.ResponseOk(c, "success", &gin.H{
+			"list": list,
+		})
 		return
 	}
 }

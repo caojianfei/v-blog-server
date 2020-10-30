@@ -63,6 +63,7 @@ func registerAdminRoute() {
 			needLogin.GET("/tag/:id", apis.Tag.Show())
 			needLogin.GET("/tags", apis.Tag.List())
 			needLogin.DELETE("/tag/:id", apis.Tag.Delete())
+			needLogin.GET("tags/:name", apis.Tag.QueryByName())
 		}
 	}
 }

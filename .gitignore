@@ -3,3 +3,4 @@
 /release
 v-blog.json
 test.go
+!/release/.gitkeep

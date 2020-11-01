@@ -3,6 +3,7 @@ package apis
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 	"gopkg.in/fatih/set.v0"
 	"strconv"
 	"time"
@@ -19,7 +20,7 @@ var Article ArticleController
 
 type ArticleEditForm struct {
 	Title      string `json:"title" binding:"required"`
-	HeadImage  string `form:"headImage" binding:"required"`
+	HeadImage  string `form:"headImage"`
 	Content    string `form:"content" binding:"required"`
 	Intro      string `form:"intro"`
 	CategoryId uint   `form:"categoryId" binding:"required"`
@@ -203,6 +204,20 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			return
 		}
 
+		headImageFile := &models.File{}
+		if article.HeadImage != "" {
+			err := databases.DB.Where("md5 = ?", article.HeadImage).First(headImageFile).Error
+			if err != nil {
+				if gorm.IsRecordNotFoundError(err) {
+					helpers.ResponseError(c, helpers.RecordNotFound, "文章封面图片不存在")
+					return
+				} else {
+					helpers.ResponseError(c, helpers.DatabaseUnknownErr, "文章封面图片查询失败")
+					return
+				}
+			}
+		}
+
 		databases.DB.Model(&article).Related(&tags, "Tags")
 		databases.DB.Model(&article).Related(&category)
 
@@ -215,10 +230,11 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			formatTags[index] = item
 		}
 
-		helpers.ResponseOk(c, "success", &gin.H{
+		res := gin.H{
 			"id":        article.ID,
 			"title":     article.Title,
 			"headImage": article.HeadImage,
+			"headImageFile": gin.H{},
 			"content":   article.Content,
 			"intro":     article.Intro,
 			"category": gin.H{
@@ -226,7 +242,21 @@ func (c ArticleController) Show() gin.HandlerFunc {
 				"name": category.Name,
 			},
 			"tags": formatTags,
-		})
+			"isDraft": article.IsDraft,
+			"publishedAt": article.PublishedAt.Format(consts.DefaultTimeFormat),
+		}
+
+		if headImageFile.ID > 0 {
+			url, _ := headImageFile.Url()
+			res["headImageFile"] = gin.H{
+				"id": headImageFile.ID,
+				"md5": headImageFile.Md5,
+				"name": headImageFile.Name,
+				"url": url,
+			}
+		}
+
+		helpers.ResponseOk(c, "success", &res)
 		return
 	}
 }

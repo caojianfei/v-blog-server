@@ -20,6 +20,9 @@ var (
 var formatData validator.Func = func(fl validator.FieldLevel) bool {
 	date, ok := fl.Field().Interface().(string)
 	if ok {
+		if len(date) == 0 {
+			return true;
+		}
 		format := fl.Param()
 		if format == "" {
 			format = "2006-01-02 15:04:05"

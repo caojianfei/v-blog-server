@@ -81,4 +81,6 @@ func registerClientRoute() {
 	Router.GET("/article/:id", apis.Article.Show())
 	Router.GET("/comments", apis.Comment.List())
 	Router.POST("/comment", apis.Comment.Create())
+	Router.GET("tags", apis.Tag.List())
+
 }

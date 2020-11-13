@@ -4,7 +4,7 @@ import "github.com/jinzhu/gorm"
 
 type Comment struct {
 	gorm.Model
-	ArticleId int
+	ArticleId uint
 	Article Article
 	Nickname string
 	Email string

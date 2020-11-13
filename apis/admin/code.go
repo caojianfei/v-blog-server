@@ -1,4 +1,4 @@
-package apis
+package admin
 
 const Success = 0
 

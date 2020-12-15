@@ -8,7 +8,6 @@ import (
 	"v-blog/consts"
 	"v-blog/databases"
 	"v-blog/helpers"
-	"v-blog/libs/slice"
 	"v-blog/models"
 )
 
@@ -60,7 +59,7 @@ func (c ArticleController) List() gin.HandlerFunc {
 		query.Offset((currentPage - 1) * count).Limit(count).Find(&articles)
 
 		// 文章图片 md5 切片
-		articleImageMd5, err := slice.ToSlice(articles).Column("HeadImage").Unique().CovertToString()
+		articleImageMd5 := make([]string, 0, len(articles))
 		// 文章分类 id 切片
 		categoryIdArr := make([]uint, 0, len(articles))
 		// 文章 id 切片

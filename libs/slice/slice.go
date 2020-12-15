@@ -25,6 +25,7 @@ func ToSlice(s interface{}) Slice {
 	return result
 }
 
+
 // 将结构体类型切片指定字段取出，组成新的 Slice
 func (s Slice) Column(field string) Slice {
 	result := make(Slice, 0, len(s))

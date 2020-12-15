@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"v-blog/databases"
@@ -58,7 +59,7 @@ func SingleGetImageUrlByMd5(md5 string) string {
 }
 
 // 切片去重
-func UniqueSlice(val interface{}) ([]interface{}, error) {
+func UniqueSlice(val interface{}) (interface{}, error) {
 
 	s, ok := IsSlice(val)
 	if !ok {
@@ -90,4 +91,42 @@ func IsSlice(s interface{}) (reflect.Value, bool) {
 	}
 
 	return val, false
+}
+
+func SliceColumn(s interface{}, field string) ([]interface{}, error) {
+	vs, ok := IsSlice(s)
+	if !ok {
+		return nil, errors.New("the param`s type is not slice")
+	}
+
+	result := make([]interface{}, vs.Len())
+	for i := 0; i < vs.Len(); i++ {
+		val := vs.Index(i)
+		// 非结构体
+		if val.Kind() != reflect.Struct {
+			return nil, errors.New("the item of slice is not struct")
+		}
+		fieldVal := val.FieldByName(field)
+		if !fieldVal.IsValid() {
+			return nil, errors.New(fmt.Sprintf("the item  of slice`s field is not valid. field name: [%s]", field))
+		}
+
+		result = append(result, fieldVal.Interface())
+	}
+
+	return result, nil
+}
+
+func SliceColumnUnique(s interface{}, field string) (interface{}, error) {
+	columns, err := SliceColumn(s, field)
+	if err != nil {
+		return nil, err
+	}
+
+	uniqueColumns, err := UniqueSlice(columns)
+	if err != nil {
+		return nil, err
+	}
+
+	return uniqueColumns, nil
 }

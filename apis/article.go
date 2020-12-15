@@ -1,12 +1,14 @@
 package apis
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"strconv"
 	"v-blog/consts"
 	"v-blog/databases"
 	"v-blog/helpers"
+	"v-blog/libs/slice"
 	"v-blog/models"
 )
 
@@ -25,11 +27,14 @@ func (c ArticleController) List() gin.HandlerFunc {
 
 		categoryId, _ := strconv.Atoi(category)
 		tagId, _ := strconv.Atoi(tag)
-		lastId, _ := strconv.Atoi(page)
+		currentPage, _ := strconv.Atoi(page)
 		count, _ := strconv.Atoi(pageSize)
 
 		if count <= 0 {
 			count = 10
+		}
+		if currentPage < 1  {
+			 currentPage = 1
 		}
 
 		var articleIds []int
@@ -37,27 +42,25 @@ func (c ArticleController) List() gin.HandlerFunc {
 			databases.DB.Table("article_tags").Where("tag_id = ?", tagId).Pluck("article_id", &articleIds)
 		}
 
-		query := databases.DB.Model(&models.Article{}).Where("is_draft = ?", 0)
+		query := databases.DB.Model(&models.Article{}).Where("is_draft = ?", 0).Order("comment_count desc, views desc, id desc")
 		if categoryId > 0 {
-			query.Where("category_id = ?", categoryId)
+			query = query.Where("category_id = ?", categoryId)
 		}
 		if len(articleIds) > 0 {
-			query.Where("id IN", articleIds)
+			query = query.Where("id IN (?)", articleIds)
 		}
 
 		if title != "" {
-			query.Where("title like %?%", title)
-		}
-
-		if lastId > 0 {
-			query.Where("id >", lastId)
+			query = query.Where("title like ?", fmt.Sprintf("%%%s%%", title))
 		}
 
 		var articles []models.Article
-		query.Limit(count).Find(&articles)
+		var total int
+		query.Count(&total)
+		query.Offset((currentPage - 1) * count).Limit(count).Find(&articles)
 
 		// 文章图片 md5 切片
-		articleImageMd5 := make([]string, 0, len(articles))
+		articleImageMd5, err := slice.ToSlice(articles).Column("HeadImage").Unique().CovertToString()
 		// 文章分类 id 切片
 		categoryIdArr := make([]uint, 0, len(articles))
 		// 文章 id 切片
@@ -172,6 +175,8 @@ func (c ArticleController) List() gin.HandlerFunc {
 
 		helpers.ResponseOk(c, "success", &gin.H{
 			"list": list,
+			"total": total,
+			"currentPage": currentPage,
 		})
 	}
 }

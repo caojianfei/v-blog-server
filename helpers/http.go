@@ -32,6 +32,9 @@ const (
 	UploadParamInvalid = 303
 	UploadFileEmpty    = 304
 	UploadFileInvalid  = 305
+
+	// 系统
+	SystemBaseError = 500
 )
 
 type HttpResponse struct {

@@ -10,8 +10,6 @@ import (
 
 var Router *gin.Engine
 
-// _ = routers.Router.Run(":8888")
-
 func InitRouter() {
 	conf, err := config.Get()
 	if err != nil {
@@ -66,6 +64,11 @@ func registerAdminRoute() {
 			needLogin.GET("/tags", adminApi.Tag.List())
 			needLogin.DELETE("/tag/:id", adminApi.Tag.Delete())
 			needLogin.GET("tags/:name", adminApi.Tag.QueryByName())
+
+			// 评论
+			needLogin.GET("/comments", adminApi.Comment.List())
+			needLogin.PUT("/comment/:id", adminApi.Comment.Audit())
+			needLogin.DELETE("/comment/:id", adminApi.Comment.Delete())
 		}
 	}
 }

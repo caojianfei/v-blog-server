@@ -29,7 +29,6 @@ func (c CategoryController) Create() gin.HandlerFunc {
 			helpers.ResponseValidateError(c, err)
 			return
 		}
-
 		existCategory := &models.Category{Name: form.Name}
 		// 去重查询
 		databases.DB.Where(existCategory).First(existCategory)

@@ -38,11 +38,11 @@ func (comment CommentController) List() gin.HandlerFunc {
 		}
 		articleId, err = strconv.Atoi(articleIdStr)
 		if err == nil && articleId > 0 {
-			query.Where("articleId = ?", articleId)
+			query = query.Where("article_id = ?", articleId)
 		}
 		state, err = strconv.Atoi(stateStr)
-		if err == nil && (state == 0 || state == 1) {
-			query.Where("state = ?", state)
+		if err == nil && (state == 0 || state == 1 || state == 2) {
+			query = query.Where("state = ?", state)
 		}
 
 		query.Model(&models.Comment{}).Count(&total)
@@ -85,7 +85,7 @@ func (comment CommentController) Audit() gin.HandlerFunc {
 
 		stateStr := c.DefaultQuery("state", "")
 		state, err := strconv.Atoi(stateStr)
-		if err != nil || (state != 0 && state != 1) {
+		if err != nil || (state != 0 && state != 1 && state != 2) {
 			helpers.ResponseError(c, helpers.RequestParamError, "参数 state 错误")
 			return
 		}

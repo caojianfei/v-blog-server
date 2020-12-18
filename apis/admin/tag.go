@@ -41,7 +41,7 @@ func (c TagController) Create() gin.HandlerFunc {
 		// 创建标签
 		newTag := models.Tag{Name: form.Name, Description: form.Description}
 		if err := databases.DB.Create(&newTag).Error; err != nil {
-			helpers.ResponseError(c, RecordCreatedFail, "标签创建失败")
+			helpers.ResponseError(c, helpers.RecordCreatedFail, "标签创建失败")
 			return
 		}
 
@@ -139,7 +139,7 @@ func (c TagController) List() gin.HandlerFunc {
 
 		query := databases.DB
 		if name != "" {
-			query.Where("name like ?", "%"+name+"%")
+			query = query.Where("name like ?", "%"+name+"%")
 		}
 
 		pageSize, err := strconv.Atoi(pageSizeStr)
@@ -157,7 +157,7 @@ func (c TagController) List() gin.HandlerFunc {
 		}
 
 		if pageSize < 1 {
-			pageSize = 1
+			pageSize = consts.DefaultPageSize
 		}
 
 		list := make([]models.Tag, pageSize)

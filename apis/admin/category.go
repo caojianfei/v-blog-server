@@ -136,25 +136,17 @@ func (c CategoryController) List() gin.HandlerFunc {
 
 		query := databases.DB
 		if name != "" {
-			query.Where("name like ?", "%"+name+"%")
+			query = query.Where("name like ?", "%"+name+"%")
 		}
 
 		pageSize, err := strconv.Atoi(pageSizeStr)
-		if err != nil {
+		if err != nil || pageSize <= 0 {
 			pageSize = 20
 		}
 
 		page, err := strconv.Atoi(pageStr)
-		if err != nil {
+		if err != nil || page <= 0 {
 			page = 1
-		}
-
-		if page < 1 {
-			page = 1
-		}
-
-		if pageSize < 1 {
-			pageSize = 1
 		}
 
 		list := make([]models.Category, pageSize)

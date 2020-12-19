@@ -259,7 +259,7 @@ func (c ArticleController) List() gin.HandlerFunc {
 			query = query.Where("title like ?", "%"+title+"%")
 		}
 		query.Model(&models.Article{}).Count(&total)
-		query.Preload("Category").Preload("Tags").Offset((page - 1) * pageSize).Limit(pageSize).Find(&articles)
+		query.Order("id desc").Preload("Category").Preload("Tags").Offset((page - 1) * pageSize).Limit(pageSize).Find(&articles)
 
 		formatArticles := make([]gin.H, len(articles))
 		for index, article := range articles {
@@ -269,7 +269,7 @@ func (c ArticleController) List() gin.HandlerFunc {
 			formatArticle["headImage"] = article.HeadImage
 			formatArticle["views"] = article.Views
 			formatArticle["commentCount"] = article.CommentCount
-			formatArticle["is_draft"] = article.IsDraft
+			formatArticle["isDraft"] = article.IsDraft
 			formatArticle["publishedAt"] = article.PublishedAt.Format(consts.DefaultTimeFormat)
 			formatArticle["createdAt"] = article.CreatedAt.Format(consts.DefaultTimeFormat)
 			formatArticle["updatedAt"] = article.UpdatedAt.Format(consts.DefaultTimeFormat)

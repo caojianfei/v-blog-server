@@ -18,4 +18,5 @@ type Article struct {
 	CategoryId uint
 	Category Category
 	Tags []Tag `gorm:"many2many:article_tags;"`
+	Comments []Comment
 }

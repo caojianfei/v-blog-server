@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"gopkg.in/fatih/set.v0"
 	"strconv"
 	"v-blog/consts"
 	"v-blog/databases"
@@ -16,6 +17,7 @@ type ArticleController struct {
 
 var Article ArticleController
 
+// 文章列表
 func (c ArticleController) List() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		category := c.Query("category")
@@ -41,7 +43,7 @@ func (c ArticleController) List() gin.HandlerFunc {
 			databases.DB.Table("article_tags").Where("tag_id = ?", tagId).Pluck("article_id", &articleIds)
 		}
 
-		query := databases.DB.Model(&models.Article{}).Where("is_draft = ?", 0).Order("comment_count desc, views desc, id desc")
+		query := databases.DB.Model(&models.Article{}).Where("is_draft = ?", 0).Order("views desc, id desc")
 		if categoryId > 0 {
 			query = query.Where("category_id = ?", categoryId)
 		}
@@ -56,81 +58,38 @@ func (c ArticleController) List() gin.HandlerFunc {
 		var articles []models.Article
 		var total int
 		query.Count(&total)
-		query.Offset((currentPage - 1) * count).Limit(count).Find(&articles)
+		query.Preload("Category").Preload("Tags").Offset((currentPage - 1) * count).Limit(count).Find(&articles)
 
 		// 文章图片 md5 切片
-		articleImageMd5 := make([]string, 0, len(articles))
-		// 文章分类 id 切片
-		categoryIdArr := make([]uint, 0, len(articles))
-		// 文章 id 切片
-		articleIdArr := make([]uint, 0, len(articles))
+		articleImageMd5 := make([]string, 0)
+		articleIdSet := set.New(set.ThreadSafe)
+		articleImageMd5Set := set.New(set.ThreadSafe)
 
 		for _, a := range articles {
+			articleIdSet.Add(a.ID)
 			if a.HeadImage != "" {
-				md5Repeat := false
-				for _, v := range articleImageMd5 {
-					if v == a.HeadImage {
-						md5Repeat = true
-					}
-				}
-				if !md5Repeat {
-					articleImageMd5 = append(articleImageMd5, a.HeadImage)
-				}
-			}
-			cateIdRepeat := false
-			for _, v := range categoryIdArr {
-				if a.CategoryId == v {
-					cateIdRepeat = true
-				}
-			}
-			if !cateIdRepeat {
-				categoryIdArr = append(categoryIdArr, a.CategoryId)
-			}
-			articleIdArr = append(articleIdArr, a.ID)
-		}
-
-		imgMap := make(map[string]string)
-		imgMap, _ = helpers.BatchGetImageUrlsByMd5(articleImageMd5)
-
-		categoryMap := make(map[uint]models.Category)
-		categories := make([]models.Category, 0, len(articles))
-		tagMap := make(map[uint]models.Tag)
-
-		databases.DB.Where("id In (?)", categoryIdArr).Find(&categories)
-
-		tagIdArr := make([]uint, 0, len(articles))
-		articleTagMap := make(map[uint][]uint)
-
-		rows, err := databases.DB.Table("article_tags").Where("article_id IN (?)", articleIdArr).Rows()
-		if err == nil {
-			var articleId, tagId uint
-			for rows.Next() {
-				err = rows.Scan(&articleId, &tagId)
-				if err != nil {
-					continue
-				}
-				repeat := false
-				for _, id := range tagIdArr {
-					if id == tagId {
-						repeat = true
-					}
-				}
-				if !repeat {
-					tagIdArr = append(tagIdArr, tagId)
-				}
-				articleTagMap[articleId] = append(articleTagMap[articleId], tagId)
+				articleImageMd5Set.Add(a.HeadImage)
 			}
 		}
 
-		tags := make([]models.Tag, 0, len(tagIdArr))
-		databases.DB.Where("id in (?)", tagIdArr).Find(&tags)
-		for _, tag := range tags {
-			tagMap[tag.ID] = tag
+		// 文章评论数量
+		var commentCounts []struct{
+			ArticleId uint
+			CommentCount uint
 		}
-
-		for _, category := range categories {
-			categoryMap[category.ID] = category
+		commentCountsMap := make(map[uint]uint)
+		databases.DB.Table("comments").Select("article_id, count(*) as comment_count").Where("article_id in (?)", articleIdSet.List()).Group("article_id").Find(&commentCounts)
+		for _, item := range commentCounts{
+			commentCountsMap[item.ArticleId] = item.CommentCount
 		}
+		// 文章图片
+		for _, item := range articleImageMd5Set.List() {
+			switch val := item.(type) {
+			case string:
+				articleImageMd5 = append(articleImageMd5, val)
+			}
+		}
+		imgMap, _ := helpers.BatchGetImageUrlsByMd5(articleImageMd5)
 
 		list := make([]gin.H, len(articles))
 		for k, article := range articles {
@@ -140,24 +99,17 @@ func (c ArticleController) List() gin.HandlerFunc {
 					headImageUrl = url
 				}
 			}
-			cateInfo := make(gin.H)
-			if category, ok := categoryMap[article.CategoryId]; ok {
-				cateInfo["label"] = category.Name
-				cateInfo["value"] = category.ID
-			}
 
 			articleTags := make([]gin.H, 0)
-			// 标签
-			if articleTagIds, ok := articleTagMap[article.ID]; ok {
-				var tags []models.Tag
-				databases.DB.Where("id in (?)", articleTagIds).Find(&tags)
-				for _, tag := range tags {
-					articleTags = append(articleTags, gin.H{
-						"value": tag.ID,
-						"label": tag.Name,
-					})
-				}
+			for _, tag := range article.Tags {
+				articleTags = append(articleTags, gin.H{
+					"value": tag.ID,
+					"label": tag.Name,
+				})
 			}
+
+			var commentNum uint
+			commentNum, _ = commentCountsMap[article.ID]
 
 			list[k] = gin.H{
 				"id":           article.ID,
@@ -165,8 +117,11 @@ func (c ArticleController) List() gin.HandlerFunc {
 				"headImageUrl": headImageUrl,
 				"intro":        article.Intro,
 				"views":        article.Views,
-				"commentCount": article.CommentCount,
-				"category":     cateInfo,
+				"commentCount": commentNum,
+				"category":     gin.H{
+					"label": article.Category.Name,
+					"value": article.Category.ID,
+				},
 				"publishedAt":  article.PublishedAt.Format(consts.DefaultTimeFormat),
 				"tags":         articleTags,
 			}
@@ -180,6 +135,7 @@ func (c ArticleController) List() gin.HandlerFunc {
 	}
 }
 
+// 文章详情
 func (c ArticleController) Show() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := helpers.GetIdFromParam(c)

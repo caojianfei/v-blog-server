@@ -43,20 +43,23 @@ func (c ArticleController) Create() gin.HandlerFunc {
 			return
 		}
 
-		articlePublishedAt := form.PublishedAt
-		var publishedAt time.Time
-		current := time.Now()
-		if articlePublishedAt == "" {
-			publishedAt = current
-		} else {
-			var err error
-			publishedAt, err = time.Parse(consts.DefaultTimeFormat, articlePublishedAt)
-			if err != nil {
-				helpers.ResponseError(c, helpers.RequestParamError, "文章发布时间错误")
-				return
-			}
-			if publishedAt.Before(current) {
-				publishedAt = current
+		var PublishedAt time.Time
+		{
+			now := time.Now()
+			loc, _ := time.LoadLocation("Asia/Shanghai")
+			if form.PublishedAt != "" {
+				publishAt, err := time.ParseInLocation(consts.DefaultTimeFormat, form.PublishedAt, loc)
+				if err != nil {
+					helpers.ResponseError(c, helpers.RequestParamError, "发布时间填写错误")
+					return
+				}
+				if publishAt.After(now) {
+					PublishedAt = publishAt
+				} else {
+					PublishedAt = now
+				}
+			} else {
+				PublishedAt = time.Now()
 			}
 		}
 
@@ -68,7 +71,7 @@ func (c ArticleController) Create() gin.HandlerFunc {
 			Intro:       form.Intro,
 			CategoryId:  form.CategoryId,
 			IsDraft:     form.IsDraft,
-			PublishedAt: publishedAt,
+			PublishedAt: PublishedAt,
 		}
 
 		tags := make([]models.Tag, len(form.Tags))
@@ -143,15 +146,22 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		article.Intro = form.Intro
 		article.CategoryId = form.CategoryId
 		article.IsDraft = form.IsDraft
-		if form.PublishedAt != "" {
-			publishAt, err := time.Parse(consts.DefaultTimeFormat, form.PublishedAt)
-			if err != nil {
-				helpers.ResponseError(c, helpers.RequestParamError, "发布时间填写错误")
-				return
-			}
+		{
 			now := time.Now()
-			if publishAt.After(now) {
-				article.PublishedAt = publishAt
+			loc, _ := time.LoadLocation("Asia/Shanghai")
+			if form.PublishedAt != "" {
+				publishAt, err := time.ParseInLocation(consts.DefaultTimeFormat, form.PublishedAt, loc)
+				if err != nil {
+					helpers.ResponseError(c, helpers.RequestParamError, "发布时间填写错误")
+					return
+				}
+				if publishAt.After(now) {
+					article.PublishedAt = publishAt
+				} else {
+					article.PublishedAt = now
+				}
+			} else {
+				article.PublishedAt = time.Now()
 			}
 		}
 

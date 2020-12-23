@@ -44,7 +44,7 @@ func (c ArticleController) List() gin.HandlerFunc {
 			databases.DB.Table("article_tags").Where("tag_id = ?", tagId).Pluck("article_id", &articleIds)
 		}
 
-		query := databases.DB.Model(&models.Article{}).Where("is_draft = ?", 0).Where("published_at <= ?", time.Now()).Order("views desc, id desc")
+		query := databases.DB.Model(&models.Article{}).Where("is_draft = ?", 0).Where("published_at <= ?", time.Now()).Order("id desc, views desc")
 		if categoryId > 0 {
 			query = query.Where("category_id = ?", categoryId)
 		}

@@ -23,5 +23,8 @@ type Article struct {
 }
 
 func (article *Article) IncreaseViewCount() {
-	databases.DB.Model(&Article{}).UpdateColumn("views", gorm.Expr("views + ?", 1))
+	if !(article.ID > 0) {
+		return
+	}
+	databases.DB.Model(&Article{}).Where("id = ?", article.ID).UpdateColumn("views", gorm.Expr("views + ?", 1))
 }

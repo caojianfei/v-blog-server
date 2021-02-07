@@ -12,6 +12,7 @@ type Article struct {
 	HeadImage    string
 	Content      string
 	Intro        string
+	Keywords     string
 	Views        int
 	CommentCount int
 	IsDraft      int

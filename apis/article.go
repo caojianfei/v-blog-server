@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"gopkg.in/fatih/set.v0"
+	"regexp"
 	"strconv"
 	"time"
 	"v-blog/consts"
@@ -174,10 +175,22 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			article.IncreaseViewCount()
 		}
 
+		headImageUrl := ""
+		{
+			if article.HeadImage != "" {
+				match, _ := regexp.MatchString(`^http(s?)://`, article.HeadImage)
+				if match {
+					headImageUrl = article.HeadImage
+				} else {
+					headImageUrl = helpers.SingleGetImageUrlByMd5(article.HeadImage)
+				}
+			}
+		}
+
 		result := gin.H{
 			"id":           article.ID,
 			"title":        article.Title,
-			"headImageUrl": helpers.SingleGetImageUrlByMd5(article.HeadImage),
+			"headImageUrl": headImageUrl,
 			"content":      article.Content,
 			"intro":        article.Intro,
 			"category": gin.H{
@@ -187,6 +200,7 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			"views":        article.Views,
 			"commentCount": article.CommentCount,
 			"publishedAt":  article.PublishedAt.Format(consts.DefaultTimeFormat),
+			"keywords":     article.Keywords,
 		}
 
 		articleTags := make([]gin.H, 0, 5)

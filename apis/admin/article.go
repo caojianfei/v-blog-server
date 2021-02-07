@@ -2,6 +2,7 @@ package admin
 
 import (
 	"github.com/gin-gonic/gin"
+	"regexp"
 	"strconv"
 	"time"
 	"v-blog/consts"
@@ -23,8 +24,11 @@ type ArticleEditForm struct {
 	CategoryId uint   `form:"categoryId" binding:"required"`
 	IsDraft    int    `form:"isDraft"`
 	// PublishedAt time.Time `form:"publishedAt" time_format:"2006-01-02 15:04:05"` //# https://github.com/gin-gonic/gin/issues/1193
-	PublishedAt string `form:"publishedAt" binding:"formatData=2006-01-02 15:04:05"`
-	Tags        []uint `form:"tags"`
+	PublishedAt   string `form:"publishedAt" binding:"formatData=2006-01-02 15:04:05"`
+	Tags          []uint `form:"tags"`
+	Keywords      string `form:"keywords"`
+	HeadImageLink string `form:"HeadImageLink"`
+	HeadImageType string `form:"HeadImageType" binding:"required"`
 }
 
 // 创建文章
@@ -63,15 +67,26 @@ func (c ArticleController) Create() gin.HandlerFunc {
 			}
 		}
 
+		// 文章封面图
+		var HeadImageUrl string
+		{
+			if form.HeadImageType == "1" {
+				HeadImageUrl = form.HeadImage
+			} else {
+				HeadImageUrl = form.HeadImageLink
+			}
+		}
+
 		// 入库
 		article := models.Article{
 			Title:       form.Title,
-			HeadImage:   form.HeadImage,
+			HeadImage:   HeadImageUrl,
 			Content:     form.Content,
 			Intro:       form.Intro,
 			CategoryId:  form.CategoryId,
 			IsDraft:     form.IsDraft,
 			PublishedAt: PublishedAt,
+			Keywords:    form.Keywords,
 		}
 
 		tags := make([]models.Tag, len(form.Tags))
@@ -144,6 +159,7 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 		article.HeadImage = form.HeadImage
 		article.Content = form.Content
 		article.Intro = form.Intro
+		article.Keywords = form.Keywords
 		article.CategoryId = form.CategoryId
 		article.IsDraft = form.IsDraft
 		{
@@ -162,6 +178,14 @@ func (c ArticleController) Edit() gin.HandlerFunc {
 				}
 			} else {
 				article.PublishedAt = time.Now()
+			}
+		}
+		// 文章封面图
+		{
+			if form.HeadImageType == "1" {
+				article.HeadImage = form.HeadImage
+			} else {
+				article.HeadImage = form.HeadImageLink
 			}
 		}
 
@@ -192,9 +216,6 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			return
 		}
 
-		headImageFile := &models.File{}
-		databases.DB.Where("md5 = ?", article.HeadImage).First(headImageFile)
-
 		formatTags := make([]gin.H, 0)
 		for _, tag := range article.Tags {
 			formatTags = append(formatTags, gin.H{
@@ -210,6 +231,7 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			"headImageFile": gin.H{},
 			"content":       article.Content,
 			"intro":         article.Intro,
+			"keywords":      article.Keywords,
 			"category": gin.H{
 				"id":   article.Category.ID,
 				"name": article.Category.Name,
@@ -218,14 +240,25 @@ func (c ArticleController) Show() gin.HandlerFunc {
 			"isDraft":     article.IsDraft,
 			"publishedAt": article.PublishedAt.Format(consts.DefaultTimeFormat),
 		}
-
-		if headImageFile.ID > 0 {
-			url, _ := headImageFile.Url()
-			res["headImageFile"] = gin.H{
-				"id":   headImageFile.ID,
-				"md5":  headImageFile.Md5,
-				"name": headImageFile.Name,
-				"url":  url,
+		{
+			res["headImageType"] = "1"
+			if article.HeadImage != "" {
+				match, _ := regexp.MatchString(`^http(s?)://`, article.HeadImage)
+				if !match {
+					headImageFile := &models.File{}
+					databases.DB.Where("md5 = ?", article.HeadImage).First(headImageFile)
+					if headImageFile.ID > 0 {
+						url, _ := headImageFile.Url()
+						res["headImageFile"] = gin.H{
+							"id":   headImageFile.ID,
+							"md5":  headImageFile.Md5,
+							"name": headImageFile.Name,
+							"url":  url,
+						}
+					}
+				} else {
+					res["headImageType"] = "2"
+				}
 			}
 		}
 

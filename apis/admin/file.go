@@ -47,7 +47,7 @@ func (c FileController) UploadImage() gin.HandlerFunc {
 			}
 
 			conf, _ := config.Get()
-			uploadedFile, err := uploadFile(c, image, conf.UploadDir.Images)
+			uploadedFile, err := uploadFile(c, image, conf.Dir.UploadImage)
 			if err != nil {
 				result[index] = gin.H{}
 				return

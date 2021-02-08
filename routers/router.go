@@ -18,7 +18,7 @@ func InitRouter() {
 
 	var mode string
 
-	switch conf.AppEnv {
+	switch conf.App.Env {
 	case "debug":
 		mode = gin.DebugMode
 	case "release":
@@ -76,7 +76,7 @@ func registerAdminRoute() {
 func registerFileRoute() {
 	conf, _ := config.Get()
 	Router.POST("/files/image", adminApi.File.UploadImage())
-	Router.Static("/images", conf.UploadDir.Images)
+	Router.Static("/images", conf.Dir.UploadImage)
 }
 
 func registerClientRoute() {

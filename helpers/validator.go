@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/zh"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/lexkong/log"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
 	zh_translations "gopkg.in/go-playground/validator.v9/translations/zh"
 	"time"
@@ -44,11 +44,11 @@ func InitValidator() {
 	if validate, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		err := zh_translations.RegisterDefaultTranslations(validate, Trans)
 		if err != nil {
-			log.Fatalf(err, "init validator error. errMsg: %s")
+			log.Fatalf("init validator error. errMsg: %s", err)
 		}
 		// 注册自定义验证器
 		if err := validate.RegisterValidation("formatData", formatData); err != nil {
-			log.Fatalf(err, "register custom validation error. errMsg: %s")
+			log.Fatalf("register custom validation error. errMsg: %s", err)
 		}
 	}
 

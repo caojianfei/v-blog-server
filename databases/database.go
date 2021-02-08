@@ -16,19 +16,19 @@ func New() *gorm.DB {
 		log.Fatalf("config has not loaded. err: %s", err)
 	}
 	connectConf := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local",
-		conf.Db.User,
-		conf.Db.Password,
-		conf.Db.Host,
-		conf.Db.Port,
-		conf.Db.Database,
-		conf.Db.Charset)
+		conf.Mysql.User,
+		conf.Mysql.Password,
+		conf.Mysql.Host,
+		conf.Mysql.Port,
+		conf.Mysql.Database,
+		conf.Mysql.Charset)
 
 	db, err := gorm.Open("mysql", connectConf)
 	if err != nil {
 		log.Fatalf("mysql connect error. msg: %s", err)
 	}
 
-	if conf.AppEnv != "release" {
+	if conf.App.Env != "release" {
 		db.LogMode(true)
 	}
 

@@ -41,11 +41,13 @@ func init() {
 	isDaemon = os.Getenv("daemon")
 
 	// 初始化配置
-	config.InitConfig(&config.Param{})
+	config.InitConfig()
 	conf, err = config.Get()
 	if err != nil {
 		log.Fatalf("Config get error: %s", err)
 	}
+
+	fmt.Println("conf", conf)
 
 	// 初始化日志
 	initLog()
@@ -61,7 +63,7 @@ func initLog() {
 	if isDaemon != "true" {
 		return
 	}
-	lg := conf.LogFile
+	lg := conf.App.LogFile
 	if lg == "" {
 		fmt.Printf("Init Log fail. Log file is not set.")
 		os.Exit(1)
@@ -194,7 +196,7 @@ func daemon() {
 	log.Println("Start in daemon.")
 	_ = os.Setenv("daemon", "true")
 
-	f := conf.DebugLogFile
+	f := conf.App.DebugLogFile
 	fd := path.Dir(f)
 	if ex, err := helpers.PathExists(fd); err == nil && ex == false {
 		err := os.MkdirAll(fd, 0755)
@@ -203,7 +205,7 @@ func daemon() {
 		}
 	}
 
-	stdFile, err := os.OpenFile(conf.DebugLogFile, os.O_RDWR|os.O_CREATE, 0666)
+	stdFile, err := os.OpenFile(conf.App.DebugLogFile, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalf("OpenFile v-blog.debug err: %s", err)
 	}
@@ -343,7 +345,7 @@ func writePid() error {
 		return nil
 	}
 
-	pidPath := conf.PidFile
+	pidPath := conf.App.PidFile
 	exist, err := helpers.PathExists(pidPath)
 	if err != nil {
 		return err
@@ -371,7 +373,7 @@ func writePid() error {
 
 // 删除pid 文件
 func clearPid() error {
-	pidPath := conf.PidFile
+	pidPath := conf.App.PidFile
 	exist, err := helpers.PathExists(pidPath)
 	if err != nil {
 		return err
@@ -386,7 +388,7 @@ func clearPid() error {
 
 // 读取 pid
 func readPid() (int, error) {
-	pidPath := conf.PidFile
+	pidPath := conf.App.PidFile
 	exist, err := helpers.PathExists(pidPath)
 	if err != nil {
 		return 0, err

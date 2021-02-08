@@ -47,8 +47,6 @@ func init() {
 		log.Fatalf("Config get error: %s", err)
 	}
 
-	fmt.Println("conf", conf)
-
 	// 初始化日志
 	initLog()
 

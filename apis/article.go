@@ -69,7 +69,8 @@ func (c ArticleController) List() gin.HandlerFunc {
 
 		for _, a := range articles {
 			articleIdSet.Add(a.ID)
-			if a.HeadImage != "" {
+			match, _ := regexp.MatchString(`^http(s?)://`, a.HeadImage)
+			if a.HeadImage != "" && !match {
 				articleImageMd5Set.Add(a.HeadImage)
 			}
 		}
@@ -105,6 +106,8 @@ func (c ArticleController) List() gin.HandlerFunc {
 			if article.HeadImage != "" {
 				if url, ok := imgMap[article.HeadImage]; ok {
 					headImageUrl = url
+				} else {
+					headImageUrl = article.HeadImage
 				}
 			}
 

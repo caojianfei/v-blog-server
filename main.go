@@ -63,21 +63,18 @@ func initLog() {
 	}
 	lg := conf.App.LogFile
 	if lg == "" {
-		fmt.Printf("Init Log fail. Log file is not set.")
-		os.Exit(1)
+		log.Fatal("init log fail: log file is not set.")
 	}
 	fn := path.Base(lg)
 	splitFileName := strings.Split(fn, ".")
 	if len(splitFileName) != 2 {
-		fmt.Printf("Log file is error. [%s]", fn)
-		os.Exit(1)
+		log.Fatalf("log file is error: %s", fn)
 	}
 
 	lf := fmt.Sprintf("%s/%s.%s.%s", path.Dir(lg), splitFileName[0], "%Y%m%d", splitFileName[1])
 	rl, err := rotatelogs.New(lf, rotatelogs.WithRotationTime(time.Hour*24), rotatelogs.WithMaxAge(time.Hour*24*30))
 	if err != nil {
-		fmt.Printf("New rotatelogs err: %s", err)
-		os.Exit(1)
+		log.Fatalf("New rotatelogs err: %s", err)
 	}
 
 	log.SetFormatter(&log.JSONFormatter{})

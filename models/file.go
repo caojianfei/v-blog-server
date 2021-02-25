@@ -30,7 +30,7 @@ func (f *File) Url() (string, error) {
 	}
 
 	if f.IsImage() {
-		return fmt.Sprintf("%s/images/%s/%s", conf.Host, f.Date, f.Name), nil
+		return fmt.Sprintf("%s/images/%s/%s", conf.App.Host, f.Date, f.Name), nil
 	}
 
 	return "", errors.New("非法访问")

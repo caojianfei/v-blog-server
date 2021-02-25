@@ -38,7 +38,9 @@ func load() {
 	if c.loaded {
 		panic("config has already loaded")
 	}
-	viper.SetConfigFile("v-blog.ini")
+
+	viper.SetConfigName("v-blog.ini")
+	viper.SetConfigType("ini")
 	viper.AddConfigPath("/etc")
 	viper.AddConfigPath(".")
 

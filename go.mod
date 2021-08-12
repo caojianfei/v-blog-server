@@ -15,6 +15,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.7.0
 	github.com/tebeka/strftime v0.1.5 // indirect
+	github.com/upyun/go-sdk/v3 v3.0.2
 	golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd
 	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect
 	gopkg.in/fatih/set.v0 v0.2.1
